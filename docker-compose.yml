@@ -1,0 +1,40 @@
+version: '3'
+services:
+  ############################
+  # Node app + Dapr sidecar
+  ############################
+  nodeapp:
+    build: ./node
+    ports:
+      - "50002:50002"
+    depends_on:
+      - placement
+    networks:
+      - opt_proxy_network
+
+  nodeapp-dapr:
+    image: "daprio/daprd:edge"
+    command: ["./daprd",
+     "-app-id", "nodeapp",
+     "-app-port", "3000",
+     "-placement-host-address", "placement:50006",
+     "-dapr-grpc-port", "50002",
+     "-dapr-http-port", "3500",
+     "-components-path", "/components"]
+    volumes:
+        - "./components/:/components"
+    depends_on:
+      - nodeapp
+    network_mode: "service:nodeapp"
+
+  placement:
+    image: "daprio/dapr"
+    command: ["./placement", "-port", "50006"]
+    ports:
+      - "50006:50006"
+    networks:
+      - opt_proxy_network
+
+networks:
+  opt_proxy_network:
+    external: true
